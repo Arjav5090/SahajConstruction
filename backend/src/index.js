@@ -45,7 +45,7 @@ app.listen(port, () => {
   console.log(`API listening on http://127.0.0.1:${port}`)
   if (!isMailConfigured()) {
     console.warn(
-      '[mail] Not configured: set MAIL_TO plus either RESEND_API_KEY + MAIL_FROM (recommended on Render), or SMTP_* for local/dev. Render blocks outbound SMTP — use Resend.',
+      '[mail] Not configured: set MAIL_TO, SMTP_HOST, SMTP_USER, SMTP_PASS in backend/.env',
     )
   }
 })

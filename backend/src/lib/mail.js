@@ -8,16 +8,12 @@ function requiredEnv(name) {
   return String(v).trim()
 }
 
-/** Use HTTPS email API (works on Render, Railway, etc.). SMTP is often blocked there. */
-function usesResend() {
-  return Boolean(process.env.RESEND_API_KEY?.trim())
-}
-
 function isSmtpConfigured() {
   try {
     requiredEnv('SMTP_HOST')
     requiredEnv('SMTP_USER')
     requiredEnv('SMTP_PASS')
+    requiredEnv('MAIL_TO')
     return true
   } catch {
     return false
@@ -25,18 +21,12 @@ function isSmtpConfigured() {
 }
 
 export function isMailConfigured() {
-  if (!process.env.MAIL_TO?.trim()) return false
-  if (usesResend()) {
-    return Boolean(process.env.MAIL_FROM?.trim())
-  }
   return isSmtpConfigured()
 }
 
-/** @returns {'none' | 'resend' | 'smtp'} */
+/** @returns {'none' | 'smtp'} */
 export function getMailTransport() {
-  if (!isMailConfigured()) return 'none'
-  if (usesResend()) return 'resend'
-  return 'smtp'
+  return isMailConfigured() ? 'smtp' : 'none'
 }
 
 export function getMailTo() {
@@ -44,17 +34,18 @@ export function getMailTo() {
 }
 
 export function getFromAddress() {
-  if (usesResend()) {
-    return requiredEnv('MAIL_FROM')
-  }
   return process.env.MAIL_FROM?.trim() || `Sahaj Construction Website <${requiredEnv('SMTP_USER')}>`
 }
 
-/** Single pooled SMTP transport — only used when not on Resend. */
+function numEnv(name, fallback) {
+  const n = Number(process.env[name])
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+/** Pooled transport — reuses the SMTP connection instead of handshaking every send. */
 let transporterSingleton = null
 
 function getTransporter() {
-  if (usesResend()) return null
   if (transporterSingleton) return transporterSingleton
   if (!isSmtpConfigured()) return null
 
@@ -64,6 +55,13 @@ function getTransporter() {
   const user = requiredEnv('SMTP_USER')
   const pass = requiredEnv('SMTP_PASS')
 
+  const connectionTimeout = numEnv('SMTP_CONNECTION_TIMEOUT_MS', 90_000)
+  const greetingTimeout = numEnv('SMTP_GREETING_TIMEOUT_MS', 45_000)
+  const socketTimeout = numEnv('SMTP_SOCKET_TIMEOUT_MS', 120_000)
+
+  /** Force IPv4 if your host has broken IPv6 routes to the mail server. */
+  const family = process.env.SMTP_FORCE_IPV4 === 'true' ? 4 : undefined
+
   transporterSingleton = nodemailer.createTransport({
     host,
     port,
@@ -72,9 +70,13 @@ function getTransporter() {
     pool: true,
     maxConnections: 2,
     maxMessages: 100,
-    connectionTimeout: 20_000,
-    greetingTimeout: 20_000,
-    socketTimeout: 60_000,
+    connectionTimeout,
+    greetingTimeout,
+    socketTimeout,
+    ...(family !== undefined ? { family } : {}),
+    tls: {
+      minVersion: 'TLSv1.2',
+    },
   })
   return transporterSingleton
 }
@@ -88,14 +90,6 @@ function getTransporter() {
  * @param {Array<{ filename: string, content: Buffer, contentType?: string }>} [opts.attachments]
  */
 export async function sendInboxEmail({ replyTo, subject, text, html, attachments }) {
-  const to = getMailTo()
-  const from = getFromAddress()
-
-  if (usesResend()) {
-    await sendViaResend({ from, to, replyTo, subject, text, html, attachments })
-    return
-  }
-
   const transporter = getTransporter()
   if (!transporter) {
     throw new Error('SMTP is not configured')
@@ -108,51 +102,12 @@ export async function sendInboxEmail({ replyTo, subject, text, html, attachments
   }))
 
   await transporter.sendMail({
-    from,
-    to,
+    from: getFromAddress(),
+    to: getMailTo(),
     replyTo,
     subject,
     text,
     html,
     attachments: nodemailerAttachments.length ? nodemailerAttachments : undefined,
   })
-}
-
-async function sendViaResend({ from, to, replyTo, subject, text, html, attachments }) {
-  const key = requiredEnv('RESEND_API_KEY')
-
-  const body = {
-    from,
-    to: [to],
-    subject,
-    reply_to: replyTo,
-  }
-  if (html) body.html = html
-  if (text) body.text = text
-  if (attachments?.length) {
-    body.attachments = attachments.map((a) => ({
-      filename: a.filename,
-      content: a.content.toString('base64'),
-    }))
-  }
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-
-  if (!res.ok) {
-    let detail = await res.text()
-    try {
-      const j = JSON.parse(detail)
-      detail = j.message || j.error?.message || j.name || detail
-    } catch {
-      /* keep text */
-    }
-    throw new Error(detail || `Resend HTTP ${res.status}`)
-  }
 }
