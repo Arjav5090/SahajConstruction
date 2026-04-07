@@ -1,0 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo:wght@400;600;700&display=swap');
+@import 'tailwindcss';
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: #ffffff;
+  font-family: 'Exo', sans-serif;
+  font-weight: 400;
+  color: #494949;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+  Infinite logo strip (Builder.io / Tailwind playground style).
+  translateX(-50%) on the track: one <ul> holds two identical halves, so the loop is seamless.
+  (Plain translateX(-100%) on each duplicate row breaks spacing; -50% on one track is correct.)
+*/
+@keyframes loop-scroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-loop-scroll {
+  display: flex;
+  width: max-content;
+  animation: loop-scroll 50s linear infinite;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-loop-scroll {
+    animation: none;
+  }
+}
