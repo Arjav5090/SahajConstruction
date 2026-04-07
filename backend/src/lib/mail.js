@@ -51,9 +51,22 @@ function getTransporter() {
 
   const host = requiredEnv('SMTP_HOST')
   const port = Number(process.env.SMTP_PORT || 587)
-  const secure = process.env.SMTP_SECURE === 'true' || port === 465
   const user = requiredEnv('SMTP_USER')
   const pass = requiredEnv('SMTP_PASS')
+
+  /**
+   * Nodemailer `secure: true` = implicit TLS (typical for 465).
+   * Ports 587 / 2525 use STARTTLS after plain connect — must use `secure: false` or you get:
+   * SSL routines:tls_validate_record_header:wrong version number
+   */
+  let secure = false
+  if (port === 465) {
+    secure = true
+  } else if (port === 587 || port === 2525) {
+    secure = false
+  } else {
+    secure = process.env.SMTP_SECURE === 'true'
+  }
 
   const connectionTimeout = numEnv('SMTP_CONNECTION_TIMEOUT_MS', 90_000)
   const greetingTimeout = numEnv('SMTP_GREETING_TIMEOUT_MS', 45_000)
@@ -67,6 +80,7 @@ function getTransporter() {
     port,
     secure,
     auth: { user, pass },
+    requireTLS: port === 587 || port === 2525,
     pool: true,
     maxConnections: 2,
     maxMessages: 100,
