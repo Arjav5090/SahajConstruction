@@ -5,7 +5,7 @@ import PageShell from '../components/PageShell'
 import Seo from '../components/Seo'
 import { companyInfo, mapsEmbedQuery } from '../data/companyInfo'
 import { pageHeroImages } from '../data/siteMedia'
-import { isContactFormConfigured, submitContactEmail } from '../lib/inboxFormSubmit'
+import { isContactEmailJsConfigured, sendContactViaEmailJs } from '../lib/emailjsContact'
 
 const mapSrc = `https://maps.google.com/maps?q=${encodeURIComponent(mapsEmbedQuery)}&output=embed`
 
@@ -32,23 +32,16 @@ function ContactPage() {
       return
     }
 
-    const body = [
-      `Name: ${name || '—'}`,
-      `Organization: ${organization || '—'}`,
-      `Email: ${email}`,
-      `Phone: ${phone || '—'}`,
-      '',
-      message || '(No message)',
-    ].join('\n')
-
-    if (!isContactFormConfigured()) {
-      const mailto = `mailto:${companyInfo.email}?subject=${encodeURIComponent(subject || 'Website enquiry')}&body=${encodeURIComponent(body)}`
-      window.location.href = mailto
+    if (!isContactEmailJsConfigured()) {
+      setStatus('error')
+      setErrorMessage(
+        'Email sending is not configured. Add VITE_EMAILJS_SERVICE_ID, VITE_EMAILJS_PUBLIC_KEY, and VITE_EMAILJS_TEMPLATE_ID to your .env file (see .env.example).',
+      )
       return
     }
 
     setStatus('sending')
-    const result = await submitContactEmail({
+    const result = await sendContactViaEmailJs({
       name,
       organization,
       email,
@@ -62,9 +55,7 @@ function ContactPage() {
       navigate('/thank-you')
     } else {
       setStatus('error')
-      setErrorMessage(
-        result.detail || 'Could not send. Ensure the API server is running and SMTP is set in backend/.env.',
-      )
+      setErrorMessage(result.detail || 'Could not send. Please try again or call us.')
     }
   }
 
@@ -155,7 +146,11 @@ function ContactPage() {
 
           <div>
             <h2 className="text-lg font-semibold text-[#1f1f1f]">Send enquiry</h2>
-            
+            <p className="mt-2 text-sm font-normal text-[#494949]">
+              Submit the form to contact us.
+             
+            </p>
+
             <form className="mt-4 space-y-3" onSubmit={handleSubmit}>
               <input
                 type="text"

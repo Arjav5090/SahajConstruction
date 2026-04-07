@@ -1,13 +1,9 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /**
-   * API origin for inbox routes (e.g. `https://api.example.com`).
-   * Leave empty in development to use the Vite proxy (`/api/...` → backend).
-   */
-  readonly VITE_API_BASE_URL?: string
-  /** Set to `true` to use mailto fallback only (no backend). */
-  readonly VITE_INBOX_API_DISABLED?: string
+  readonly VITE_EMAILJS_SERVICE_ID?: string
+  readonly VITE_EMAILJS_PUBLIC_KEY?: string
+  readonly VITE_EMAILJS_TEMPLATE_ID?: string
 }
 
 interface ImportMeta {

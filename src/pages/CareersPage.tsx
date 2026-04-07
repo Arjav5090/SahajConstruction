@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Banknote, Briefcase, Calendar, MapPin, Upload } from 'lucide-react'
+import { Banknote, Briefcase, Calendar, MapPin } from 'lucide-react'
 import PageHero from '../components/PageHero'
 import PageShell from '../components/PageShell'
 import Seo from '../components/Seo'
@@ -9,92 +8,47 @@ import { companyInfo } from '../data/companyInfo'
 import { pageHeroImages } from '../data/siteMedia'
 import { rolesWeHire, whyJoin } from '../data/careersPageContent'
 import { jobListings } from '../data/jobListings'
-import { isCareersFormConfigured, submitCareersApplicationForm } from '../lib/inboxFormSubmit'
+
+const applicationSteps = [
+  'Review the open roles below and note the position title that fits your profile.',
+  'Prepare an updated résumé (PDF preferred) and a short cover letter describing your experience and interest.',
+  `Email us at ${companyInfo.email}. Use a subject line like "Application: [role title]" or "Application: General" if you are not applying for a specific listing.`,
+  'In the email body, include your full name, phone number, current city, and expected availability.',
+  'Attach your résumé and send from an email address you check regularly. We reply only to shortlisted candidates.',
+]
 
 function CareersPage() {
-  const navigate = useNavigate()
-  const applySectionRef = useRef<HTMLDivElement>(null)
-  const cvInputRef = useRef<HTMLInputElement>(null)
-  const [cvFile, setCvFile] = useState<File | null>(null)
-  const [positionValue, setPositionValue] = useState('')
-  const [status, setStatus] = useState<'idle' | 'sending' | 'error'>('idle')
-  const [errorMessage, setErrorMessage] = useState('')
+  const howToRef = useRef<HTMLDivElement>(null)
+  const [selectedRole, setSelectedRole] = useState<string | null>(null)
 
   useEffect(() => {
-    if (window.location.hash === '#careers-apply') {
-      applySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (window.location.hash === '#careers-how-to-apply') {
+      howToRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }, [])
 
-  function goToApplicationForm(jobTitle: string) {
-    setPositionValue(jobTitle)
-    applySectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    window.setTimeout(() => applySectionRef.current?.focus(), 400)
+  function scrollToHowToApply(roleTitle: string) {
+    setSelectedRole(roleTitle)
+    howToRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.setTimeout(() => howToRef.current?.focus(), 400)
   }
 
-  async function handleApplySubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setErrorMessage('')
-    const form = e.currentTarget
-    const fd = new FormData(form)
-    const firstName = String(fd.get('firstName') || '').trim()
-    const lastName = String(fd.get('lastName') || '').trim()
-    const phone = String(fd.get('phone') || '').trim()
-    const city = String(fd.get('city') || '').trim()
-    const email = String(fd.get('email') || '').trim()
-    const position = String(fd.get('position') || '').trim()
-    const expectedSalary = String(fd.get('expectedSalary') || '').trim()
-    const coverLetter = String(fd.get('coverLetter') || '').trim()
-    const resume = cvInputRef.current?.files?.[0] ?? null
-
-    if (!email) {
-      setStatus('error')
-      setErrorMessage('Please enter your email address.')
-      return
-    }
-
-    const fullName = [firstName, lastName].filter(Boolean).join(' ') || '—'
-    const message = [
-      'Careers application — Sahaj Construction',
+  function mailtoForRole(title: string) {
+    const subject = `Application: ${title}`
+    const body = [
+      'Dear Sahaj Construction team,',
       '',
-      `Name: ${fullName}`,
-      `Email: ${email}`,
-      `Phone: ${phone || '—'}`,
-      `City: ${city || '—'}`,
-      `Position: ${position || '—'}`,
-      `Expected salary: ${expectedSalary || '—'}`,
+      `I would like to apply for: ${title}`,
       '',
-      'Cover letter / message:',
-      coverLetter || '(None)',
+      'Name:',
+      'Phone:',
+      'City:',
+      '',
+      'Brief summary:',
+      '',
+      '(Attach your résumé as PDF before sending.)',
     ].join('\n')
-
-    if (!isCareersFormConfigured()) {
-      if (resume) {
-        setStatus('error')
-        setErrorMessage(
-          `Résumé upload needs the inbox API (run the backend with SMTP in backend/.env), or email your CV to ${companyInfo.email}.`,
-        )
-        return
-      }
-      const subject = `Careers application — ${position || 'General'}`
-      window.location.href = `mailto:${companyInfo.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`
-      return
-    }
-
-    setStatus('sending')
-    const result = await submitCareersApplicationForm(form)
-    if (result.ok) {
-      setCvFile(null)
-      setPositionValue('')
-      if (cvInputRef.current) cvInputRef.current.value = ''
-      form.reset()
-      navigate('/thank-you')
-    } else {
-      setStatus('error')
-      setErrorMessage(
-        result.detail || 'Could not send. Ensure the API server is running and SMTP is set in backend/.env.',
-      )
-    }
+    return `mailto:${companyInfo.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
   }
 
   return (
@@ -185,13 +139,21 @@ function CareersPage() {
                     <p className="mt-3 text-sm font-normal leading-relaxed text-[#494949]">
                       {job.excerpt}
                     </p>
-                    <button
-                      type="button"
-                      onClick={() => goToApplicationForm(job.title)}
-                      className="mt-5 inline-flex rounded-none bg-[#0c8894] px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#2ea2a3]"
-                    >
-                      Apply now
-                    </button>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => scrollToHowToApply(job.title)}
+                        className="inline-flex rounded-none border border-[#0c8894] bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-[#0c8894] transition hover:bg-[#0c8894]/5"
+                      >
+                        How to apply
+                      </button>
+                      <a
+                        href={mailtoForRole(job.title)}
+                        className="inline-flex rounded-none bg-[#0c8894] px-5 py-2.5 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#2ea2a3]"
+                      >
+                        Email us
+                      </a>
+                    </div>
                   </div>
                 </div>
               </motion.article>
@@ -222,8 +184,8 @@ function CareersPage() {
           </div>
 
           <motion.div
-            ref={applySectionRef}
-            id="careers-apply"
+            ref={howToRef}
+            id="careers-how-to-apply"
             tabIndex={-1}
             initial={{ opacity: 0, y: 12 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -231,123 +193,32 @@ function CareersPage() {
             className="scroll-mt-24 rounded-none border border-neutral-200 bg-neutral-50 p-6 outline-none focus-visible:ring-2 focus-visible:ring-[#0c8894] focus-visible:ring-offset-2 sm:p-8"
           >
             <p className="text-xs font-bold uppercase tracking-wide text-[#0c8894]">
-              Apply now
+              Application process
             </p>
-            <h3 className="mt-2 text-2xl font-bold text-[#000000]">Submit your profile</h3>
+            <h3 className="mt-2 text-2xl font-bold text-[#000000]">How to apply</h3>
             <p className="mt-2 text-sm font-normal text-[#494949]">
-              Share your details. We review all applications and contact shortlisted
-              candidates. Applications are sent to{' '}
+              We accept applications by email only. Follow the steps below, then write to{' '}
               <a className="text-[#0c8894] underline" href={`mailto:${companyInfo.email}`}>
                 {companyInfo.email}
               </a>
               .
             </p>
-            <form className="mt-6 grid gap-3 sm:grid-cols-2" onSubmit={handleApplySubmit}>
-              <div className="col-span-2 hidden" aria-hidden>
-                <input type="hidden" name="form_type" value="careers" />
-                <input type="hidden" name="inbox_email" value={companyInfo.email} />
-              </div>
-              <input
-                name="firstName"
-                placeholder="First name"
-                autoComplete="given-name"
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894]"
-              />
-              <input
-                name="lastName"
-                placeholder="Last name"
-                autoComplete="family-name"
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894]"
-              />
-              <input
-                name="phone"
-                type="tel"
-                placeholder="Phone"
-                autoComplete="tel"
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894]"
-              />
-              <input
-                name="city"
-                placeholder="City"
-                autoComplete="address-level2"
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894]"
-              />
-              <input
-                name="email"
-                type="email"
-                required
-                placeholder="Email *"
-                autoComplete="email"
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894] sm:col-span-2"
-              />
-              <select
-                name="position"
-                value={positionValue}
-                onChange={(e) => setPositionValue(e.target.value)}
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894] sm:col-span-2"
-              >
-                <option value="" disabled>
-                  Position of interest
-                </option>
-                {jobListings.map((j) => (
-                  <option key={j.id} value={j.title}>
-                    {j.title}
-                  </option>
-                ))}
-              </select>
-              <input
-                name="expectedSalary"
-                placeholder="Expected salary (optional)"
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894] sm:col-span-2"
-              />
-              <div className="sm:col-span-2">
-                <span className="text-sm font-semibold text-[#1f1f1f]">Résumé</span>
-                <input
-                  ref={cvInputRef}
-                  type="file"
-                  name="resume"
-                  className="sr-only"
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  onChange={(ev) => setCvFile(ev.target.files?.[0] ?? null)}
-                />
-                <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-                  <button
-                    type="button"
-                    onClick={() => cvInputRef.current?.click()}
-                    className="inline-flex shrink-0 items-center justify-center gap-2 border-2 border-[#0c8894] bg-white px-5 py-3 text-xs font-bold uppercase tracking-wide text-[#0c8894] shadow-sm transition hover:bg-[#0c8894] hover:text-white"
-                  >
-                    <Upload className="h-4 w-4 shrink-0" strokeWidth={2.5} aria-hidden />
-                    Choose file
-                  </button>
-                  <div className="flex min-h-[46px] min-w-0 flex-1 items-center border border-neutral-200 bg-white px-3 py-2">
-                    <span
-                      className={`truncate text-sm ${cvFile ? 'font-medium text-[#1f1f1f]' : 'text-neutral-500'}`}
-                      title={cvFile?.name}
-                    >
-                      {cvFile ? cvFile.name : 'PDF or Word · max 5 MB'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <textarea
-                name="coverLetter"
-                placeholder="Cover letter / message"
-                rows={4}
-                className="rounded-none border border-neutral-200 bg-white px-4 py-3 text-sm outline-none focus:border-[#0c8894] sm:col-span-2"
-              />
-              {status === 'error' && errorMessage ? (
-                <p className="text-sm text-red-700 sm:col-span-2" role="alert">
-                  {errorMessage}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                disabled={status === 'sending'}
-                className="rounded-none bg-[#0c8894] px-8 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#2ea2a3] disabled:cursor-not-allowed disabled:opacity-60 sm:col-span-2"
-              >
-                {status === 'sending' ? 'Sending…' : 'Submit now'}
-              </button>
-            </form>
+            {selectedRole ? (
+              <p className="mt-3 text-sm font-semibold text-[#1f1f1f]">
+                Selected role: {selectedRole}
+              </p>
+            ) : null}
+            <ol className="mt-6 list-decimal space-y-3 pl-5 text-sm font-normal leading-relaxed text-[#494949]">
+              {applicationSteps.map((step, idx) => (
+                <li key={idx}>{step}</li>
+              ))}
+            </ol>
+            <a
+              href={`mailto:${companyInfo.email}?subject=${encodeURIComponent('Careers enquiry')}`}
+              className="mt-8 inline-flex rounded-none bg-[#0c8894] px-8 py-3 text-sm font-bold uppercase tracking-wide text-white transition hover:bg-[#2ea2a3]"
+            >
+              Write to us
+            </a>
           </motion.div>
         </section>
       </PageShell>

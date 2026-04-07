@@ -11,6 +11,7 @@ export const rolesWeHire = [
   'Project Managers & Coordinators',
   'Quantity Surveyors & Estimators',
   'Site Supervisors',
+  'Accounting & Finance',
   'Equipment Operators & Skilled Tradespeople',
   'Office & Admin Support Staff',
 ]

@@ -49,4 +49,14 @@ export const jobListings: JobListing[] = [
     excerpt:
       'Daily site supervision, safety compliance, and progress reporting.',
   },
+  {
+    id: '5',
+    title: 'Accountant',
+    type: 'Full Time',
+    location: 'Surat (office)',
+    deadline: 'Rolling',
+    salary: 'As per experience',
+    excerpt:
+      'GST, billing, vendor payments, and statutory compliance for infrastructure and EPC work.',
+  },
 ]
