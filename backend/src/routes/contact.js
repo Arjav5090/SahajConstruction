@@ -1,5 +1,5 @@
 import express, { Router } from 'express'
-import { getFromAddress, getMailTo, getTransporter, isMailConfigured } from '../lib/mail.js'
+import { isMailConfigured, sendInboxEmail } from '../lib/mail.js'
 
 export const contactRouter = Router()
 contactRouter.use(express.json({ limit: '32kb' }))
@@ -32,10 +32,7 @@ contactRouter.post('/', async (req, res, next) => {
       text,
     )}</pre>`
 
-    const transporter = getTransporter()
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to: getMailTo(),
+    await sendInboxEmail({
       replyTo: fromEmail,
       subject: `[Website] ${subj}`,
       text,

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import multer from 'multer'
-import { getFromAddress, getMailTo, getTransporter, isMailConfigured } from '../lib/mail.js'
+import { isMailConfigured, sendInboxEmail } from '../lib/mail.js'
 
 const MAX_BYTES = 5 * 1024 * 1024
 
@@ -75,15 +75,12 @@ careersRouter.post('/', upload.single('resume'), async (req, res, next) => {
       })
     }
 
-    const transporter = getTransporter()
-    await transporter.sendMail({
-      from: getFromAddress(),
-      to: getMailTo(),
+    await sendInboxEmail({
       replyTo: email,
       subject: `[Website] ${subj}`,
       text,
       html,
-      attachments,
+      attachments: attachments.length ? attachments : undefined,
     })
     res.json({ ok: true })
   } catch (err) {

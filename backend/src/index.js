@@ -8,7 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.join(__dirname, '..', '.env') })
 import { contactRouter } from './routes/contact.js'
 import { careersRouter } from './routes/careers.js'
-import { isMailConfigured } from './lib/mail.js'
+import { getMailTransport, isMailConfigured } from './lib/mail.js'
 
 const app = express()
 const port = Number(process.env.PORT || 3001)
@@ -25,6 +25,7 @@ app.get('/api/health', (_req, res) => {
   res.json({
     ok: true,
     mail: isMailConfigured(),
+    mailTransport: getMailTransport(),
   })
 })
 
@@ -44,7 +45,7 @@ app.listen(port, () => {
   console.log(`API listening on http://127.0.0.1:${port}`)
   if (!isMailConfigured()) {
     console.warn(
-      '[mail] Not configured: set SMTP_HOST, SMTP_USER, SMTP_PASS, and MAIL_TO in backend/.env (contact/careers will return 503 until then).',
+      '[mail] Not configured: set MAIL_TO plus either RESEND_API_KEY + MAIL_FROM (recommended on Render), or SMTP_* for local/dev. Render blocks outbound SMTP — use Resend.',
     )
   }
 })
