@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import PageHero from '../components/PageHero'
 import PageShell from '../components/PageShell'
 import Seo from '../components/Seo'
-import { companyInfo, mapsEmbedQuery } from '../data/companyInfo'
+import { companyInfo, googleMapsShareUrl, mapsEmbedQuery } from '../data/companyInfo'
 import { pageHeroImages } from '../data/siteMedia'
 import { isContactEmailJsConfigured, sendContactViaEmailJs } from '../lib/emailjsContact'
 
@@ -97,9 +97,8 @@ function ContactPage() {
         <div className="mt-10 grid gap-10 lg:grid-cols-2">
           <div>
             <h2 className="text-lg font-semibold text-[#1f1f1f]">Registered office</h2>
-            <p className="mt-3 font-normal leading-relaxed text-[#494949]">
-              {companyInfo.shortName}
-              <br />
+            <p className="mt-3 text-base font-semibold text-[#1f1f1f]">{companyInfo.legalName}</p>
+            <p className="mt-1 font-normal leading-relaxed text-[#494949]">
               {companyInfo.registeredOfficeLines.map((line) => (
                 <span key={line}>
                   {line}
@@ -132,15 +131,27 @@ function ContactPage() {
               </li>
             </ul>
 
-            <div className="mt-8 overflow-hidden rounded-none border border-neutral-200">
-              <iframe
-                title="Office location"
-                src={mapSrc}
-                className="h-64 w-full border-0"
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                allowFullScreen
-              />
+            <div className="mt-8">
+              <p className="text-sm font-semibold text-[#1f1f1f]">{companyInfo.legalName}</p>
+              <p className="mt-1 text-xs font-normal text-[#494949]">Location on Google Maps</p>
+              <div className="mt-2 overflow-hidden rounded-none border border-neutral-200">
+                <iframe
+                  title={`Map: ${companyInfo.legalName}`}
+                  src={mapSrc}
+                  className="h-64 w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
+                />
+              </div>
+              <a
+                href={googleMapsShareUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-sm font-semibold text-[#0c8894] underline hover:text-[#2ea2a3]"
+              >
+                Open in Google Maps
+              </a>
             </div>
           </div>
 
